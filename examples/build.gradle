@@ -1,0 +1,74 @@
+apply plugin: 'com.android.application'
+
+android {
+    compileSdkVersion 19
+    buildToolsVersion "22.0.1"
+
+}
+
+repositories {
+    jcenter()
+}
+
+buildscript {
+    repositories {
+        jcenter()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:1.1.3'
+
+        project ":plugin"
+
+        // NOTE: Do not place your application dependencies here; they belong
+        // in the individual module build.gradle files
+    }
+}
+
+apply plugin: GreetingPlugin
+
+greeting {
+    message = 'Hi'
+    greeter = 'Gradle'
+}
+
+class GreetingPlugin implements Plugin<Project> {
+    def project
+
+    void apply(Project project) {
+        // Add the 'greeting' extension object
+        this.project = project
+        project.extensions.create("greeting", GreetingPluginExtension)
+        // Add a task that uses the configuration
+        project.task('hello') << {
+            println "${project.greeting.message} from ${project.greeting.greeter}"
+        }
+
+        project.task('turnDevicePowerOn') << {
+            if (isDevicePowerOn()) {
+                println "Attempting to turn power on"
+                project.exec {
+                    executable "adb"
+                    args "shell", "input", "keyevent", "26"
+                }
+            }
+        }
+    }
+
+    private boolean isDevicePowerOn() {
+        def checkDevicePower = new ByteArrayOutputStream()
+
+        project.exec {
+            executable "adb"
+            args "shell", "dumpsys", "input_method"
+            //store the output instead of printing to the console
+            standardOutput = checkDevicePower
+        }
+
+        checkDevicePower.toString().contains("mScreenOn=false")
+    }
+}
+
+class GreetingPluginExtension {
+    String message
+    String greeter
+}
